@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:tennis_app_front/services/auth.dart';
 import 'dart:convert';
 import 'package:tennis_app_front/shared/globals.dart' as globals;
+import 'package:tennis_app_front/shared/loading.dart';
 
 class RegisterPage extends StatefulWidget {
   @override
@@ -11,8 +13,10 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  final AuthService _auth = AuthService();
   final _formKey = GlobalKey<FormState>();
   String _status = 'no-action';
+  bool _loading = false;
   final _nameTextField = TextEditingController();
   final _emailTextField = TextEditingController();
   final _passwordTextField = TextEditingController();
@@ -53,7 +57,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return _loading ? Loading() : Scaffold(
       // appBar: AppBar(
       //   title: Text('Register'),
       // ),
@@ -101,6 +105,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                       ),
                       TextFormField(
+                        keyboardType: TextInputType.emailAddress,
                         controller: _emailTextField,
                         validator: _validateEmail,
                         decoration: InputDecoration(
@@ -128,17 +133,15 @@ class _RegisterPageState extends State<RegisterPage> {
                         margin: EdgeInsets.only(top: 16, bottom: 16),
                         width: double.infinity,
                         child: RaisedButton(
-                          onPressed: () {
-                            setState(() => this._status = 'loading');
-
+                          onPressed: () async {
                             if (_formKey.currentState.validate()) {
-                              _register().then((result) {
-                                if (result == 200) {
-                                  Navigator.of(context).pop();
-                                } else {
-                                  setState(() => this._status = 'rejected');
-                                }
-                              });
+                              setState(() => this._loading = true);
+                              dynamic result = await _auth.registerWithEmailAndPassword(_emailTextField.text, _passwordTextField.text, _nameTextField.text);
+                              Navigator.popUntil(context, ModalRoute.withName('/'));
+                              if (result == null) {
+                                setState(() => this._status = 'error');
+                                setState(() => this._loading = false);
+                              }
                             }
                           },
                           child: Text('Enviar'),

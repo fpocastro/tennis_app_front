@@ -19,6 +19,11 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyAC3xp8NTLyJnY3EdLU8v4fIvUalbpgABA" />
 
+        <activity 
+            android:name="com.yalantis.ucrop.UCropActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
+
         <activity
             android:name=".MainActivity"
             android:launchMode="singleTop"

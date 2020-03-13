@@ -21,7 +21,8 @@ class _CreateNewMatchPageState extends State<CreateNewMatchPage> {
     return Scaffold(
       appBar: AppBar(title: Text('Criar Partida')),
       body: Container(
-        padding: EdgeInsets.all(8),
+        color: Colors.grey[100],
+        padding: EdgeInsets.only(top: 8, left: 16, right: 16),
         child: Column(
           children: <Widget>[
             Form(

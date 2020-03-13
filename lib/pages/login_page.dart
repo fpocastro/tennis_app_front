@@ -4,7 +4,9 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tennis_app_front/pages/register_page.dart';
+import 'package:tennis_app_front/services/auth.dart';
 import 'package:tennis_app_front/shared/globals.dart' as globals;
+import 'package:tennis_app_front/shared/loading.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -14,8 +16,10 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final AuthService _auth = AuthService();
   final _formKey = GlobalKey<FormState>();
   String _status = 'no-action';
+  bool _loading = false;
   String _errorMessage;
   final _emailTextField = TextEditingController();
   final _passwordTextField = TextEditingController();
@@ -90,7 +94,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return _loading ? Loading() : Scaffold(
       // appBar: AppBar(
       //   title: Text('Login'),
       // ),
@@ -104,85 +108,78 @@ class _LoginPageState extends State<LoginPage> {
         ),
         child: Center(
           child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.all(Radius.circular(10)),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withOpacity(.5),
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                        offset: Offset(6, 7)),
-                  ],
-                  color: Colors.white,
-                ),
-                padding: EdgeInsets.all(16),
-                width: double.infinity,
-                child: Scrollbar(child: SingleChildScrollView(
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      children: <Widget>[
-                        TextFormField(
-                          controller: _emailTextField,
-                          validator: _validateEmail,
-                          decoration: InputDecoration(
-                            icon: Icon(Icons.email),
-                            hintText: ('Informe seu e-mail'),
-                            labelText: ('E-mail'),
-                          ),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.all(Radius.circular(10)),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withOpacity(.5),
+                    blurRadius: 10,
+                    spreadRadius: 2,
+                    offset: Offset(6, 7)),
+              ],
+              color: Colors.white,
+            ),
+            padding: EdgeInsets.all(16),
+            width: double.infinity,
+            child: Scrollbar(
+              child: SingleChildScrollView(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: <Widget>[
+                      TextFormField(
+                        keyboardType: TextInputType.emailAddress,
+                        controller: _emailTextField,
+                        validator: _validateEmail,
+                        decoration: InputDecoration(
+                          icon: Icon(Icons.email),
+                          hintText: ('Informe seu e-mail'),
+                          labelText: ('E-mail'),
                         ),
-                        TextFormField(
-                          controller: _passwordTextField,
-                          validator: _validatePassword,
-                          decoration: InputDecoration(
-                            icon: Icon(Icons.lock),
-                            hintText: ('Informe sua senha'),
-                            labelText: ('Senha'),
-                          ),
-                          obscureText: true,
+                      ),
+                      TextFormField(
+                        controller: _passwordTextField,
+                        validator: _validatePassword,
+                        decoration: InputDecoration(
+                          icon: Icon(Icons.lock),
+                          hintText: ('Informe sua senha'),
+                          labelText: ('Senha'),
                         ),
-                        Container(
-                          margin: EdgeInsets.only(top: 16, bottom: 16),
-                          width: double.infinity,
-                          child: RaisedButton(
-                            onPressed: () {
-                              setState(() => this._status = 'loading');
-                              if (_formKey.currentState.validate()) {
-                                _login().then((result) {
-                                  if (result == 200) {
-                                    Navigator.of(context)
-                                        .pushReplacementNamed('/home');
-                                  } else {
-                                    setState(() => this._status = 'rejected');
-                                    Fluttertoast.showToast(
-                                      msg: _errorMessage,
-                                      toastLength: Toast.LENGTH_SHORT,
-                                      gravity: ToastGravity.CENTER,
-                                      
-                                    );
-                                  }
-                                });
+                        obscureText: true,
+                      ),
+                      Container(
+                        margin: EdgeInsets.only(top: 16, bottom: 16),
+                        width: double.infinity,
+                        child: RaisedButton(
+                          onPressed: () async {
+                            if (_formKey.currentState.validate()) {
+                              setState(() => _loading = true);
+                              dynamic result = await _auth.signInWithEmailAndPassword(_emailTextField.text, _passwordTextField.text);
+                              if (result == null) {
+                                setState(() => this._status = 'error');
+                                setState(() => this._loading = false);
                               }
-                            },
-                            child: Text('Enviar'),
-                          ),
+                            }
+                          },
+                          child: Text('Enviar'),
                         ),
-                        InkWell(
-                          child: Text('Novo por aqui? Cadastre-se'),
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => RegisterPage()),
-                          ),
+                      ),
+                      InkWell(
+                        child: Text('Novo por aqui? Cadastre-se'),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => RegisterPage()),
                         ),
-                      ],
-                    ),
-                  ),
+                      ),
+                    ],
                   ),
                 ),
               ),
+            ),
           ),
         ),
+      ),
     );
   }
 }

@@ -1,7 +1,12 @@
 import 'dart:convert';
 import 'package:camera/camera.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tennis_app_front/services/auth.dart';
+import 'package:tennis_app_front/services/database.dart';
+import 'package:tennis_app_front/shared/image_capture.dart';
 import 'package:tennis_app_front/shared/take_picture_page.dart';
 
 class CustomDrawer extends StatefulWidget {
@@ -12,9 +17,11 @@ class CustomDrawer extends StatefulWidget {
 }
 
 class _CustomDrawerState extends State<CustomDrawer> {
+  final AuthService _auth = AuthService();
+  bool _loading = false;
   int _userId;
-  String _name;
-  String _email;
+  String _name = '';
+  String _email = '';
   String _pictureUrl;
   String _nameInitials = '';
 
@@ -22,28 +29,50 @@ class _CustomDrawerState extends State<CustomDrawer> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setString('Authorization', null);
     prefs.setString('UserInfo', null);
-    Navigator.of(context).pushReplacementNamed('/login');
+    Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
   }
 
-  void _loadUserInfo() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    final String userInfoStr = prefs.getString('UserInfo');
+  // void _loadUserInfo() async {
+  //   SharedPreferences prefs = await SharedPreferences.getInstance();
+  //   final String userInfoStr = prefs.getString('UserInfo');
 
-    if (userInfoStr != null) {
-      var userInfo = json.decode(userInfoStr);
+  //   if (userInfoStr != null) {
+  //     var userInfo = json.decode(userInfoStr);
+  //     setState(() {
+  //       _name = userInfo['name'];
+  //       _email = userInfo['email'];
+  //       _pictureUrl = userInfo['pictureUrl'];
+  //       _nameInitials = _name.split(' ').first[0] + _name.split(' ').last[0];
+  //     });
+  //   }
+  // }
+
+  void _getUserInfo() async {
+    setState(() {
+      _loading = true;
+    });
+    final FirebaseUser user = await AuthService().getCurrentUser();
+    final dynamic userInfo = await DatabaseService(uid: user.uid).getUserData();
+    String filePath = 'images/profiles/${user.uid}';
+    final ref = FirebaseStorage.instance.ref().child(filePath);
+    await ref.getDownloadURL().then((url) {
       setState(() {
-        _name = userInfo['name'];
-        _email = userInfo['email'];
-        _pictureUrl = userInfo['pictureUrl'];
-        _nameInitials = _name.split(' ').first[0] + _name.split(' ').last[0];
+        _pictureUrl = url;
       });
-    }
+    }, onError: (error) {});
+    setState(() {
+      _name = userInfo['name'];
+      _email = user.email;
+      _nameInitials = userInfo['name'].toString().split(' ').first[0] +
+          userInfo['name'].toString().split(' ').last[0];
+      _loading = false;
+    });
   }
 
   @override
   void initState() {
     super.initState();
-    _loadUserInfo();
+    _getUserInfo();
   }
 
   @override
@@ -68,8 +97,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                           Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) =>
-                                      TakePicturePage(camera: cameras[1])));
+                                  builder: (context) => ImageCapture()));
                         },
                         child: Container(
                           width: 70,
@@ -173,7 +201,10 @@ class _CustomDrawerState extends State<CustomDrawer> {
           ListTile(
             leading: Icon(Icons.vpn_key),
             title: Text('Logout'),
-            onTap: () => _logout(context),
+            onTap: () async {
+              await _auth.signOut();
+              Navigator.popUntil(context, ModalRoute.withName('/'));
+            },
           ),
         ],
       ),

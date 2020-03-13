@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Place {
   int id;
   String name;
@@ -18,5 +20,16 @@ class Place {
     fullAddress = data['fullAddress'];
     lat = data['lat'];
     lng = data['lng'];
+  }
+
+  Place.fromSnapshot(DocumentSnapshot data) {
+    name = data['name'];
+    website = data['website'];
+    email = data['email'];
+    phone = data['phone'];
+    pictureUlr = data['pictureUrl'];
+    fullAddress = data['fullAddress'];
+    lat = data['lat'].toDouble();
+    lng = data['lng'].toDouble();
   }
 }
