@@ -1,18 +1,16 @@
 import 'dart:convert';
 
-import 'package:camera/camera.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tennis_app_front/models/user.dart';
+import 'package:tennis_app_front/pages/account/about_page.dart';
+import 'package:tennis_app_front/pages/account/account_configuration_page.dart';
+import 'package:tennis_app_front/pages/account/faq_page.dart';
 import 'package:tennis_app_front/pages/account/user_information_page.dart';
 import 'package:tennis_app_front/services/auth.dart';
-import 'package:tennis_app_front/services/database.dart';
 import 'package:tennis_app_front/shared/custom_appbar.dart';
 import 'package:tennis_app_front/shared/custom_drawer.dart';
 import 'package:tennis_app_front/shared/image_capture.dart';
 import 'package:tennis_app_front/shared/loading.dart';
-import 'package:tennis_app_front/shared/take_picture_page.dart';
 
 class AccountPage extends StatefulWidget {
   @override
@@ -21,60 +19,33 @@ class AccountPage extends StatefulWidget {
 
 class _AccountPageState extends State<AccountPage> {
   final AuthService _auth = AuthService();
+  User _user;
   bool _loading = false;
   String _name = '';
   String _email = '';
   String _pictureUrl;
   String _nameInitials = '';
 
-  void _logout(context) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString('Authorization', null);
-    prefs.setString('UserInfo', null);
-    Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
-  }
-
-  // void _loadUserInfo() async {
-  //   SharedPreferences prefs = await SharedPreferences.getInstance();
-  //   final String userInfoStr = prefs.getString('UserInfo');
-
-  //   if (userInfoStr != null) {
-  //     var userInfo = json.decode(userInfoStr);
-  //     setState(() {
-  //       _name = userInfo['name'];
-  //       _email = userInfo['email'];
-  //       _pictureUrl = userInfo['pictureUrl'];
-  //       _nameInitials = _name.split(' ').first[0] + _name.split(' ').last[0];
-  //     });
-  //   }
-  // }
-
   void _getUserInfo() async {
     setState(() {
       _loading = true;
     });
-    final FirebaseUser user = await AuthService().getCurrentUser();
-    final dynamic userInfo = await DatabaseService(uid: user.uid).getUserData();
-    String filePath = 'images/profiles/${user.uid}';
-    final ref = FirebaseStorage.instance.ref().child(filePath);
-    await ref.getDownloadURL().then((url) {
-      setState(() {
-        _pictureUrl = url;
-      });
-    }, onError: (error) {});
+    final User user = await AuthService().getCurrentUser();
     setState(() {
-      _name = userInfo['name'];
+      _user = user;
+      _name = user.name;
       _email = user.email;
-      _nameInitials = userInfo['name'].toString().split(' ').first[0] +
-          userInfo['name'].toString().split(' ').last[0];
+      _nameInitials =
+          user.name.split(' ').first[0] + user.name.split(' ').last[0];
+      _pictureUrl = user.pictureUrl;
       _loading = false;
     });
   }
 
   @override
   void initState() {
-    super.initState();
     _getUserInfo();
+    super.initState();
   }
 
   @override
@@ -138,12 +109,12 @@ class _AccountPageState extends State<AccountPage> {
                             ),
                           ),
                           Text(
-                            _name,
+                            _user != null ? _user.name : '',
                             style: TextStyle(
                                 fontSize: 22, fontWeight: FontWeight.w600),
                           ),
                           Text(
-                            _email,
+                            _user.level != null ? 'Nível ${_user.level.toStringAsFixed(1)}' : '',
                             style: TextStyle(
                                 fontSize: 14, color: Colors.grey[600]),
                           ),
@@ -167,7 +138,7 @@ class _AccountPageState extends State<AccountPage> {
               ),
               AccountMenuRaisedButton(
                 title: 'Configurações da conta',
-                redirect: null,
+                redirect: AccountConfigurationPage(),
               ),
               SizedBox(height: 15),
               Align(
@@ -179,11 +150,11 @@ class _AccountPageState extends State<AccountPage> {
               ),
               AccountMenuRaisedButton(
                 title: 'Sobre o TennisApp',
-                redirect: null,
+                redirect: AboutPage(),
               ),
               AccountMenuRaisedButton(
                 title: 'Perguntas frequentes',
-                redirect: null,
+                redirect: FaqPage(),
               ),
               AccountMenuRaisedButton(
                 title: 'Informações Legais',
@@ -200,7 +171,7 @@ class _AccountPageState extends State<AccountPage> {
                 ),
                 onTap: () async {
                   await _auth.signOut();
-                  Navigator.popUntil(context, ModalRoute.withName('/'));
+                  Navigator.of(context).pushReplacementNamed('/login');
                 },
               ),
               SizedBox(height: 40),

@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:tennis_app_front/models/place.dart';
+import 'package:tennis_app_front/models/user.dart';
 import 'package:tennis_app_front/pages/places/place_widget.dart';
 import 'package:tennis_app_front/services/auth.dart';
 import 'package:tennis_app_front/services/database.dart';
@@ -24,38 +25,30 @@ class _PlacesPageState extends State<PlacesPage> {
   final AuthService _auth = AuthService();
   bool _loading = false;
 
-  // void _getClosestPlaces() async {
-  //   final String requestUrl = globals.apiMainUrl + 'api/v1/places';
-
-  //   SharedPreferences prefs = await SharedPreferences.getInstance();
-  //   final String authorization = prefs.getString('Authorization');
-
-  //   final Map<String, String> headers = {
-  //     'Authorization': authorization,
-  //     'Content-Type': 'application/json'
-  //   };
-
-  //   http.Response response = await http.get(
-  //     requestUrl,
-  //     headers: headers,
-  //   );
-
-  //   final List parsedList = json.decode(response.body)['content'];
-
-  //   setState(() {
-  //     _places = parsedList.map((s) => Place.fromJson(s)).toList();
-  //   });
-  // }
-
-  void _getPlaces() async {
+  void _getClosestPlaces() async {
     setState(() {
       _loading = true;
     });
-    final FirebaseUser user = await AuthService().getCurrentUser();
-    final dynamic places = await DatabaseService(uid: user.uid).getPlaces();
-    final parsedList = places.documents.map((s) => Place.fromSnapshot(s)).toList();
+    final String requestUrl = globals.apiMainUrl + '/api/places/distance/';
+    Position position = await Geolocator().getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+
+    final User user = await _auth.getCurrentUser();
+    final String token = await _auth.getAuthorizationToken();
+
+    final Map<String, String> headers = {
+      'Authorization': token,
+      'Content-Type': 'application/json'
+    };
+
+    http.Response response = await http.get(
+      requestUrl + position.longitude.toString() + ',' + position.latitude.toString(),
+      headers: headers,
+    );
+
+    final List parsedList = json.decode(response.body);
+
     setState(() {
-      _places = parsedList;
+      _places = parsedList.map((s) => Place.fromJson(s)).toList();
       _loading = false;
     });
   }
@@ -63,7 +56,7 @@ class _PlacesPageState extends State<PlacesPage> {
   Future<Null> _onRefresh() {
     Completer<Null> completer = new Completer<Null>();
 
-    _getPlaces();
+    _getClosestPlaces();
 
     completer.complete();
 
@@ -73,7 +66,7 @@ class _PlacesPageState extends State<PlacesPage> {
   @override
   void initState() {
     super.initState();
-    _getPlaces();
+    _getClosestPlaces();
   }
 
   @override

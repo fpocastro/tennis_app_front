@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:tennis_app_front/pages/introduction/intro_first_page.dart';
 import 'package:tennis_app_front/services/auth.dart';
 import 'dart:convert';
 import 'package:tennis_app_front/shared/globals.dart' as globals;
@@ -57,108 +58,119 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    return _loading ? Loading() : Scaffold(
-      // appBar: AppBar(
-      //   title: Text('Register'),
-      // ),
-      body: Container(
-        padding: EdgeInsets.only(left: 16, right: 16, top: 32, bottom: 16),
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/tennisbg.jpg'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: Center(
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.all(Radius.circular(10)),
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.black.withOpacity(.5),
-                    blurRadius: 10,
-                    spreadRadius: 2,
-                    offset: Offset(6, 7)),
-              ],
-              color: Colors.white,
-            ),
-            padding: EdgeInsets.all(16),
-            width: double.infinity,
-            child: Scrollbar(
-              child: SingleChildScrollView(
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: <Widget>[
-                      TextFormField(
-                        controller: _nameTextField,
-                        validator: (value) {
-                          if (value.isEmpty) {
-                            return 'Campo nome nao pode estar vazio';
-                          }
-                          return null;
-                        },
-                        decoration: InputDecoration(
-                          icon: Icon(Icons.person),
-                          hintText: ('Informe seu nome'),
-                          labelText: ('Nome'),
-                        ),
-                      ),
-                      TextFormField(
-                        keyboardType: TextInputType.emailAddress,
-                        controller: _emailTextField,
-                        validator: _validateEmail,
-                        decoration: InputDecoration(
-                          icon: Icon(Icons.email),
-                          hintText: ('Informe seu e-mail'),
-                          labelText: ('E-mail'),
-                        ),
-                      ),
-                      TextFormField(
-                        controller: _passwordTextField,
-                        validator: (value) {
-                          if (value.isEmpty) {
-                            return 'Campo senha nao pode estar vazio';
-                          }
-                          return null;
-                        },
-                        decoration: InputDecoration(
-                          icon: Icon(Icons.lock),
-                          hintText: ('Informe sua senha'),
-                          labelText: ('Senha'),
-                        ),
-                        obscureText: true,
-                      ),
-                      Container(
-                        margin: EdgeInsets.only(top: 16, bottom: 16),
-                        width: double.infinity,
-                        child: RaisedButton(
-                          onPressed: () async {
-                            if (_formKey.currentState.validate()) {
-                              setState(() => this._loading = true);
-                              dynamic result = await _auth.registerWithEmailAndPassword(_emailTextField.text, _passwordTextField.text, _nameTextField.text);
-                              Navigator.popUntil(context, ModalRoute.withName('/'));
-                              if (result == null) {
-                                setState(() => this._status = 'error');
-                                setState(() => this._loading = false);
-                              }
-                            }
-                          },
-                          child: Text('Enviar'),
-                        ),
-                      ),
-                      InkWell(
-                        child: Text('Ja possui uma conta? Acesse-a'),
-                        onTap: () => Navigator.pop(context),
-                      ),
+    return _loading
+        ? Loading()
+        : Scaffold(
+            body: Container(
+              padding:
+                  EdgeInsets.only(left: 16, right: 16, top: 32, bottom: 16),
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/images/tennisbg.jpg'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+              child: Center(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withOpacity(.5),
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                          offset: Offset(6, 7)),
                     ],
+                    color: Colors.white,
+                  ),
+                  padding: EdgeInsets.all(16),
+                  width: double.infinity,
+                  child: Scrollbar(
+                    child: SingleChildScrollView(
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          children: <Widget>[
+                            TextFormField(
+                              controller: _nameTextField,
+                              validator: (value) {
+                                if (value.isEmpty) {
+                                  return 'Campo nome nao pode estar vazio';
+                                }
+                                return null;
+                              },
+                              decoration: InputDecoration(
+                                icon: Icon(Icons.person),
+                                hintText: ('Informe seu nome'),
+                                labelText: ('Nome'),
+                              ),
+                            ),
+                            TextFormField(
+                              keyboardType: TextInputType.emailAddress,
+                              controller: _emailTextField,
+                              validator: _validateEmail,
+                              decoration: InputDecoration(
+                                icon: Icon(Icons.email),
+                                hintText: ('Informe seu e-mail'),
+                                labelText: ('E-mail'),
+                              ),
+                            ),
+                            TextFormField(
+                              controller: _passwordTextField,
+                              validator: (value) {
+                                if (value.isEmpty) {
+                                  return 'Campo senha nao pode estar vazio';
+                                }
+                                return null;
+                              },
+                              decoration: InputDecoration(
+                                icon: Icon(Icons.lock),
+                                hintText: ('Informe sua senha'),
+                                labelText: ('Senha'),
+                              ),
+                              obscureText: true,
+                            ),
+                            Container(
+                              margin: EdgeInsets.only(top: 16, bottom: 16),
+                              width: double.infinity,
+                              child: RaisedButton(
+                                onPressed: () async {
+                                  if (_formKey.currentState.validate()) {
+                                    setState(() => this._loading = true);
+                                    int result = await _auth
+                                        .registerWithEmailAndPassword(
+                                            _emailTextField.text,
+                                            _passwordTextField.text,
+                                            _nameTextField.text);
+                                    if (result != 200) {
+                                      setState(() {
+                                        this._status = 'error';
+                                        this._loading = false;
+                                      });
+                                    } else {
+                                      Navigator.pushReplacement(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  IntroFirstPage()));
+                                    }
+                                  }
+                                },
+                                child: Text('Enviar'),
+                              ),
+                            ),
+                            InkWell(
+                              child: Text('Ja possui uma conta? Acesse-a'),
+                              onTap: () => Navigator.pop(context),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ),
-      ),
-    );
+          );
   }
 }
