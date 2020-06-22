@@ -52,6 +52,9 @@ class _FaqPageState extends State<FaqPage> {
             questions.map((message) => new Question.fromJson(message)).toList();
       });
     }
+    setState(() {
+      _loading = false;
+    });
   }
 
   Future<void> _onRefresh() {
@@ -74,60 +77,62 @@ class _FaqPageState extends State<FaqPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Perguntas Frequentes')),
-      body: Container(
-        padding: EdgeInsets.only(bottom: 16, left: 8, right: 8),
-        color: Colors.grey[100],
-        child: RefreshIndicator(
-          onRefresh: _onRefresh,
-          child: ListView.separated(
-            padding: EdgeInsets.only(top: 16, bottom: 16),
-            separatorBuilder: (context, index) {
-              return SizedBox(
-                height: 8,
-              );
-            },
-            physics: const AlwaysScrollableScrollPhysics(),
-            itemCount: _questions.length,
-            itemBuilder: (BuildContext context, int index) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.orange[200],
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(10),
-                        topRight: Radius.circular(10),
-                      ),
-                    ),
-                    child: Text(
-                      _questions[index].question,
-                      style: TextStyle(fontSize: 18),
-                    ),
-                  ),
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.orange[100],
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(10),
-                        bottomRight: Radius.circular(10),
-                      ),
-                    ),
-                    child: Text(
-                      _questions[index].answer,
-                      style: TextStyle(fontSize: 18),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
+      body: _loading
+          ? Loading(noBackground: true)
+          : Container(
+              padding: EdgeInsets.only(bottom: 16, left: 8, right: 8),
+              color: Colors.grey[100],
+              child: RefreshIndicator(
+                onRefresh: _onRefresh,
+                child: ListView.separated(
+                  padding: EdgeInsets.only(top: 16, bottom: 16),
+                  separatorBuilder: (context, index) {
+                    return SizedBox(
+                      height: 8,
+                    );
+                  },
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemCount: _questions.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.orange[200],
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(10),
+                              topRight: Radius.circular(10),
+                            ),
+                          ),
+                          child: Text(
+                            _questions[index].question,
+                            style: TextStyle(fontSize: 18),
+                          ),
+                        ),
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.orange[100],
+                            borderRadius: BorderRadius.only(
+                              bottomLeft: Radius.circular(10),
+                              bottomRight: Radius.circular(10),
+                            ),
+                          ),
+                          child: Text(
+                            _questions[index].answer,
+                            style: TextStyle(fontSize: 18),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
     );
   }
 }

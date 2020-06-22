@@ -1,5 +1,5 @@
 class Place {
-  int id;
+  String id;
   String name;
   String website;
   String email;
@@ -10,6 +10,7 @@ class Place {
   double lng; 
 
   Place.fromJson(Map<String, dynamic> data) {
+    id = data['_id'];
     name = data['name'];
     website = data['website'];
     email = data['email'];

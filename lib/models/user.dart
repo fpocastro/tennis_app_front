@@ -12,6 +12,7 @@ class User {
   double level;
   int playersSearchDistance;
   int placesSearchDistance;
+  List<dynamic> favoritePlaces;
   bool introduction;
 
   User.fromJson(Map<String, dynamic> data) {
@@ -28,6 +29,7 @@ class User {
     level = data['level'] == null || data['level'] is double ? data['level'] : data['level'].toDouble();
     playersSearchDistance = data['playersSearchDistance'];
     placesSearchDistance = data['placesSearchDistance'];
+    favoritePlaces = data['favoritePlaces'];
     introduction = data['introduction'];
   }
 
@@ -46,6 +48,7 @@ class User {
     user['level'] = this.level;
     user['playersSearchDistance'] = this.playersSearchDistance;
     user['placesSearchDistance'] = this.placesSearchDistance;
+    user['favoritePlaces'] = this.favoritePlaces;
     user['introduction'] = this.introduction;
 
     return user;
@@ -63,6 +66,7 @@ class User {
     if (this.level != null) user['level'] = this.level;
     if (this.playersSearchDistance != null) user['playersSearchDistance'] = this.playersSearchDistance;
     if (this.placesSearchDistance != null) user['placesSearchDistance'] = this.placesSearchDistance;
+    if (this.favoritePlaces != null) user['favoritePlaces'] = this.favoritePlaces;
     if (this.introduction != null) user['introduction'] = this.introduction;
 
     return user;

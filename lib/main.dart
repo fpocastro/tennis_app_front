@@ -6,6 +6,7 @@ import 'package:tennis_app_front/pages/home/home_page.dart';
 import 'package:tennis_app_front/pages/login_page.dart';
 import 'package:tennis_app_front/pages/places/places_page.dart';
 import 'package:tennis_app_front/pages/players/players_page.dart';
+import 'package:tennis_app_front/pages/search_match/matches_page.dart';
 import 'package:tennis_app_front/pages/search_match/search_match_page.dart';
 import 'package:tennis_app_front/pages/wrapper.dart';
 
@@ -29,6 +30,7 @@ class MyApp extends StatelessWidget {
         '/account': (BuildContext context) => new AccountPage(),
         '/messages': (BuildContext context) => new MessagesPage(),
         '/players': (BuildContext context) => new PlayersPage(),
+        '/matches': (BuildContext context) => new MatchesPage(),
       },
     );
   }

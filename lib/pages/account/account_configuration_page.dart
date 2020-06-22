@@ -85,6 +85,7 @@ class _AccountConfigurationPageState extends State<AccountConfigurationPage> {
       appBar: AppBar(title: Text('Configurações da Conta')),
       body: Container(
         padding: EdgeInsets.only(top: 16, left: 16, right: 16),
+        height: double.infinity,
         color: Colors.grey[100],
         child: SingleChildScrollView(
           child: Form(

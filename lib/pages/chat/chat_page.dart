@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -57,7 +58,8 @@ class _ChatPageState extends State<ChatPage> {
     socket.on('receive_message', (jsonData) {
       Map<String, dynamic> data = new Map<String, dynamic>.from(jsonData);
       if (mounted) {
-        this.setState(() => _messages.insert(0, new Message.fromJson(data)));
+        this.setState(() => _messages.add(new Message.fromJson(data)));
+        Timer(Duration(milliseconds: 100), () => _scrollController.jumpTo(_scrollController.position.maxScrollExtent));
       }
     });
 
@@ -77,9 +79,10 @@ class _ChatPageState extends State<ChatPage> {
       setState(() {
         _messages =
             messages.map((message) => new Message.fromJson(message)).toList();
-        _scrollController.animateTo(0.0,
-            duration: const Duration(milliseconds: 500), curve: Curves.easeOut);
+        // _scrollController.animateTo(0.0,
+        //     duration: const Duration(milliseconds: 500), curve: Curves.easeOut);
       });
+      Timer(Duration(milliseconds: 100), () => _scrollController.jumpTo(_scrollController.position.maxScrollExtent));
     }
 
     setState(() {
@@ -191,6 +194,7 @@ class _ChatPageState extends State<ChatPage> {
                                 new Message.fromJson(messageObj['message']);
                             newMessage.time = DateTime.now();
                             this.setState(() => _messages.add(newMessage));
+                            Timer(Duration(milliseconds: 100), () => _scrollController.jumpTo(_scrollController.position.maxScrollExtent));
                             _messageTextField.text = '';
                           }
                         },
@@ -200,37 +204,6 @@ class _ChatPageState extends State<ChatPage> {
                 )
               ],
             ),
-      // : Container(
-      //     child: Flex(
-      //       direction: Axis.vertical,
-      //       children: <Widget>[
-      //         RaisedButton(
-      //           onPressed: () {
-      //             socket.emit(
-      //                 'send_message', {'message': 'teste', 'senderId': _user.uid, 'receiverId': _chatUser.uid});
-      //           },
-      //           child: Text('Send Message'),
-      //         ),
-      //         RaisedButton(
-      //           onPressed: () {
-      //             socket.disconnect();
-      //           },
-      //           child: Text('Disconnect'),
-      //         ),
-      //         Container(
-      //           height: 300,
-      //           child: ListView.separated(
-      //               padding: EdgeInsets.only(top: 16, bottom: 16),
-      //               separatorBuilder: (context, index) => Divider(),
-      //               physics: const AlwaysScrollableScrollPhysics(),
-      //               itemCount: _messages.length,
-      //               itemBuilder: (BuildContext context, int index) {
-      //                 return Text(_messages[index]);
-      //               }),
-      //         ),
-      //       ],
-      //     ),
-      //   ),
     );
   }
 }

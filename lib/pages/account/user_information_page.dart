@@ -68,12 +68,13 @@ class _UserInformationPageState extends State<UserInformationPage> {
 
     final body = new Map<String, dynamic>();
     body['name'] = _nameTextField.text;
+    _dateOfBirthUnformatted = DateFormat('dd/MM/yyyy').parse(_dateOfBirthTextField.text);
     body['dateOfBirth'] = _dateOfBirthUnformatted.toString();
-    body['height'] = _heightTextField.text;
-    body['weight'] = _weightTextField.text;
-    body['laterality'] = _laterality;
-    body['backhand'] = _backhandType;
-    body['court'] = _favoriteCourt;
+    if (_heightTextField.text != '') body['height'] = int.parse(_heightTextField.text);
+    if (_weightTextField.text != '') body['weight'] = int.parse(_weightTextField.text);
+    if (_laterality != null) body['laterality'] = _laterality;
+    if (_laterality != null) body['backhand'] = _backhandType;
+    if (_laterality != null) body['court'] = _favoriteCourt;
 
     final Map<String, String> headers = {
       'Authorization': token,

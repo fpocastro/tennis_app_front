@@ -23,16 +23,52 @@ class PlacesPage extends StatefulWidget {
 class _PlacesPageState extends State<PlacesPage> {
   List<dynamic> _places = [];
   final AuthService _auth = AuthService();
+  User _user;
   bool _loading = false;
+  bool displayFavorites = false;
 
   void _getClosestPlaces() async {
     setState(() {
       _loading = true;
     });
-    final String requestUrl = globals.apiMainUrl + '/api/places/distance/';
-    Position position = await Geolocator().getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+    Position position = await Geolocator()
+        .getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
 
-    final User user = await _auth.getCurrentUser();
+    _user = await _auth.getCurrentUser();
+    final String token = await _auth.getAuthorizationToken();
+
+    final String requestUrl = globals.apiMainUrl +
+        '/api/places?latLng=${position.longitude},${position.latitude}&maxDistance=' +
+        (_user.placesSearchDistance * 1000).toString();
+
+    final Map<String, String> headers = {
+      'Authorization': token,
+      'Content-Type': 'application/json'
+    };
+
+    http.Response response = await http.get(
+      requestUrl +
+          position.longitude.toString() +
+          ',' +
+          position.latitude.toString(),
+      headers: headers,
+    );
+
+    final List parsedList = json.decode(response.body);
+
+    setState(() {
+      _places = parsedList.map((s) => Place.fromJson(s)).toList();
+      _loading = false;
+    });
+  }
+
+  void _getFavoritPlaces() async {
+    setState(() {
+      _loading = true;
+    });
+    final String requestUrl = globals.apiMainUrl + '/api/users/places';
+
+    _user = await _auth.getCurrentUser();
     final String token = await _auth.getAuthorizationToken();
 
     final Map<String, String> headers = {
@@ -41,7 +77,7 @@ class _PlacesPageState extends State<PlacesPage> {
     };
 
     http.Response response = await http.get(
-      requestUrl + position.longitude.toString() + ',' + position.latitude.toString(),
+      requestUrl,
       headers: headers,
     );
 
@@ -56,7 +92,11 @@ class _PlacesPageState extends State<PlacesPage> {
   Future<Null> _onRefresh() {
     Completer<Null> completer = new Completer<Null>();
 
-    _getClosestPlaces();
+    if (displayFavorites) {
+      _getFavoritPlaces();
+    } else {
+      _getClosestPlaces();
+    }
 
     completer.complete();
 
@@ -65,26 +105,76 @@ class _PlacesPageState extends State<PlacesPage> {
 
   @override
   void initState() {
-    super.initState();
     _getClosestPlaces();
+    super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CustomAppBar('Locais'),
-      body: _loading ? Loading(noBackground: true) : Container(
-        color: Colors.grey[300],
-        width: double.infinity,
-        child: RefreshIndicator(
-          onRefresh: _onRefresh,
-          child: ListView.builder(
-            physics: const AlwaysScrollableScrollPhysics(),
-            itemCount: _places.length,
-            itemBuilder: (BuildContext context, int index) {
-              return PlaceWidget(place: _places[index]);
-            },
-          ),
+      body: Container(
+        color: Colors.grey[100],
+        child: Column(
+          children: <Widget>[
+            Container(
+              color: Colors.grey[400],
+              padding: EdgeInsets.only(left: 8, right: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: <Widget>[
+                  RaisedButton(
+                    child: Text('Todos'),
+                    color: displayFavorites ? null : Colors.orange[300],
+                    onPressed: _loading
+                        ? null
+                        : () {
+                            if (displayFavorites) {
+                              _getClosestPlaces();
+                              setState(() {
+                                displayFavorites = !displayFavorites;
+                              });
+                            }
+                          },
+                  ),
+                  RaisedButton(
+                    child: Text('Favoritos'),
+                    color: displayFavorites ? Colors.orange[300] : null,
+                    onPressed: _loading
+                        ? null
+                        : () {
+                            if (!displayFavorites) {
+                              _getFavoritPlaces();
+                              setState(() {
+                                displayFavorites = !displayFavorites;
+                              });
+                            }
+                          },
+                  ),
+                ],
+              ),
+            ),
+            _loading
+                ? Expanded(child: Center(child: Loading(noBackground: true)))
+                : Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      child: RefreshIndicator(
+                        onRefresh: _onRefresh,
+                        child: ListView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          itemCount: _places.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            return PlaceWidget(
+                                place: _places[index],
+                                favorited: _user.favoritePlaces
+                                    .contains(_places[index].id));
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+          ],
         ),
       ),
       drawer: Drawer(

@@ -136,6 +136,17 @@ class _CustomDrawerState extends State<CustomDrawer> {
             },
           ),
           ListTile(
+            leading: Icon(Icons.star),
+            title: Text('Minhas Partidas'),
+            selected: ModalRoute.of(context).settings.name == '/matches',
+            onTap: () {
+              if (ModalRoute.of(context).settings.name != '/matches') {
+                Navigator.of(context).pop();
+                Navigator.of(context).pushNamed('/matches');
+              }
+            },
+          ),
+          ListTile(
             leading: Icon(Icons.event),
             title: Text('Eventos'),
             onTap: () {},

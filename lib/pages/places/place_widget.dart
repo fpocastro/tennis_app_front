@@ -1,18 +1,75 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:tennis_app_front/models/place.dart';
+import 'package:tennis_app_front/models/user.dart';
 import 'package:tennis_app_front/pages/places/place_page.dart';
+import 'package:tennis_app_front/services/auth.dart';
+import 'package:tennis_app_front/shared/globals.dart' as globals;
+import 'package:http/http.dart' as http;
 
-class PlaceWidget extends StatelessWidget {
+class PlaceWidget extends StatefulWidget {
   final Place place;
+  final bool favorited;
 
-  const PlaceWidget({Key key, this.place}) : super(key: key);
+  const PlaceWidget({Key key, this.place, this.favorited}) : super(key: key);
+
+  @override
+  _PlaceWidgetState createState() => _PlaceWidgetState();
+}
+
+class _PlaceWidgetState extends State<PlaceWidget> {
+  final AuthService _auth = AuthService();
+  bool _favorited;
+
+  Future<int> _updateFavorites() async {
+    final User user = await _auth.getCurrentUser();
+    final String token = await _auth.getAuthorizationToken();
+
+    final String requestUrl = globals.apiMainUrl + '/api/users/' + user.uid;
+
+    var body = user.toJsonRequest();
+    body['favoritePlaces'] = user.favoritePlaces;
+
+    if (body['favoritePlaces'].contains(widget.place.id)) {
+      body['favoritePlaces'].removeWhere((item) => item == widget.place.id);
+    } else {
+      body['favoritePlaces'].add(widget.place.id);
+    }
+
+    final Map<String, String> headers = {
+      'Authorization': token,
+      'Content-Type': 'application/json'
+    };
+
+    http.Response response = await http.put(
+      requestUrl,
+      body: json.encode(body),
+      headers: headers,
+    );
+
+    if (response.statusCode == 200) {
+      await _auth.setCurrentUser(response.body);
+    }
+
+    return response.statusCode;
+  }
+
+  @override
+  void initState() {
+    _favorited = widget.favorited;
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => PlacePage(place: place,)),
+        MaterialPageRoute(
+            builder: (context) => PlacePage(
+                  place: widget.place,
+                )),
       ),
       child: Container(
         margin: EdgeInsets.all(8),
@@ -29,19 +86,45 @@ class PlaceWidget extends StatelessWidget {
         child: Flex(
           direction: Axis.vertical,
           children: <Widget>[
-            Container(
-              height: 150,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                image: DecorationImage(
-                  image: (place.pictureUlr != null)
-                      ? NetworkImage(place.pictureUlr)
-                      : NetworkImage(
-                          'https://images.unsplash.com/photo-1557766131-dca3a8acae87?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=3582&q=80'),
-                  fit: BoxFit.cover,
+            Stack(
+              children: <Widget>[
+                Container(
+                  height: 150,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    image: DecorationImage(
+                      image: (widget.place.pictureUlr != null)
+                          ? NetworkImage(widget.place.pictureUlr)
+                          : NetworkImage(
+                              'https://images.unsplash.com/photo-1557766131-dca3a8acae87?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=3582&q=80'),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
-              ),
+                Container(
+                  margin: EdgeInsets.only(right: 16),
+                  child: Align(
+                    alignment: Alignment.topRight,
+                    child: IconButton(
+                      icon: Icon(
+                        _favorited ? Icons.star : Icons.star_border,
+                        size: 50,
+                      ),
+                      color: Colors.yellow[600],
+                      onPressed: () async {
+                        int response = await _updateFavorites();
+
+                        if (response == 200) {
+                          setState(() {
+                            _favorited = !_favorited;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              ],
             ),
             Container(
               padding: EdgeInsets.all(8),
@@ -50,12 +133,12 @@ class PlaceWidget extends StatelessWidget {
               child: Column(
                 children: <Widget>[
                   Text(
-                    '${place.name}',
+                    '${widget.place.name}',
                     style: TextStyle(fontSize: 16),
                   ),
                   Divider(),
                   Text(
-                    '${place.fullAddress}',
+                    '${widget.place.fullAddress}',
                     style: TextStyle(fontSize: 12),
                   ),
                 ],
