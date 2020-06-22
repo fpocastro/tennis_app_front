@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:tennis_app_front/models/place.dart';
+import 'package:tennis_app_front/models/user.dart';
 import 'package:tennis_app_front/pages/places/place_widget.dart';
 import 'package:tennis_app_front/services/auth.dart';
 import 'package:tennis_app_front/services/database.dart';
@@ -22,40 +23,68 @@ class PlacesPage extends StatefulWidget {
 class _PlacesPageState extends State<PlacesPage> {
   List<dynamic> _places = [];
   final AuthService _auth = AuthService();
+  User _user;
   bool _loading = false;
+  bool displayFavorites = false;
 
-  // void _getClosestPlaces() async {
-  //   final String requestUrl = globals.apiMainUrl + 'api/v1/places';
-
-  //   SharedPreferences prefs = await SharedPreferences.getInstance();
-  //   final String authorization = prefs.getString('Authorization');
-
-  //   final Map<String, String> headers = {
-  //     'Authorization': authorization,
-  //     'Content-Type': 'application/json'
-  //   };
-
-  //   http.Response response = await http.get(
-  //     requestUrl,
-  //     headers: headers,
-  //   );
-
-  //   final List parsedList = json.decode(response.body)['content'];
-
-  //   setState(() {
-  //     _places = parsedList.map((s) => Place.fromJson(s)).toList();
-  //   });
-  // }
-
-  void _getPlaces() async {
+  void _getClosestPlaces() async {
     setState(() {
       _loading = true;
     });
-    final FirebaseUser user = await AuthService().getCurrentUser();
-    final dynamic places = await DatabaseService(uid: user.uid).getPlaces();
-    final parsedList = places.documents.map((s) => Place.fromSnapshot(s)).toList();
+    Position position = await Geolocator()
+        .getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+
+    _user = await _auth.getCurrentUser();
+    final String token = await _auth.getAuthorizationToken();
+
+    final String requestUrl = globals.apiMainUrl +
+        '/api/places?latLng=${position.longitude},${position.latitude}&maxDistance=' +
+        (_user.placesSearchDistance * 1000).toString();
+
+    final Map<String, String> headers = {
+      'Authorization': token,
+      'Content-Type': 'application/json'
+    };
+
+    http.Response response = await http.get(
+      requestUrl +
+          position.longitude.toString() +
+          ',' +
+          position.latitude.toString(),
+      headers: headers,
+    );
+
+    final List parsedList = json.decode(response.body);
+
     setState(() {
-      _places = parsedList;
+      _places = parsedList.map((s) => Place.fromJson(s)).toList();
+      _loading = false;
+    });
+  }
+
+  void _getFavoritPlaces() async {
+    setState(() {
+      _loading = true;
+    });
+    final String requestUrl = globals.apiMainUrl + '/api/users/places';
+
+    _user = await _auth.getCurrentUser();
+    final String token = await _auth.getAuthorizationToken();
+
+    final Map<String, String> headers = {
+      'Authorization': token,
+      'Content-Type': 'application/json'
+    };
+
+    http.Response response = await http.get(
+      requestUrl,
+      headers: headers,
+    );
+
+    final List parsedList = json.decode(response.body);
+
+    setState(() {
+      _places = parsedList.map((s) => Place.fromJson(s)).toList();
       _loading = false;
     });
   }
@@ -63,7 +92,11 @@ class _PlacesPageState extends State<PlacesPage> {
   Future<Null> _onRefresh() {
     Completer<Null> completer = new Completer<Null>();
 
-    _getPlaces();
+    if (displayFavorites) {
+      _getFavoritPlaces();
+    } else {
+      _getClosestPlaces();
+    }
 
     completer.complete();
 
@@ -72,26 +105,76 @@ class _PlacesPageState extends State<PlacesPage> {
 
   @override
   void initState() {
+    _getClosestPlaces();
     super.initState();
-    _getPlaces();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CustomAppBar('Locais'),
-      body: _loading ? Loading(noBackground: true) : Container(
-        color: Colors.grey[300],
-        width: double.infinity,
-        child: RefreshIndicator(
-          onRefresh: _onRefresh,
-          child: ListView.builder(
-            physics: const AlwaysScrollableScrollPhysics(),
-            itemCount: _places.length,
-            itemBuilder: (BuildContext context, int index) {
-              return PlaceWidget(place: _places[index]);
-            },
-          ),
+      body: Container(
+        color: Colors.grey[100],
+        child: Column(
+          children: <Widget>[
+            Container(
+              color: Colors.grey[400],
+              padding: EdgeInsets.only(left: 8, right: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: <Widget>[
+                  RaisedButton(
+                    child: Text('Todos'),
+                    color: displayFavorites ? null : Colors.orange[300],
+                    onPressed: _loading
+                        ? null
+                        : () {
+                            if (displayFavorites) {
+                              _getClosestPlaces();
+                              setState(() {
+                                displayFavorites = !displayFavorites;
+                              });
+                            }
+                          },
+                  ),
+                  RaisedButton(
+                    child: Text('Favoritos'),
+                    color: displayFavorites ? Colors.orange[300] : null,
+                    onPressed: _loading
+                        ? null
+                        : () {
+                            if (!displayFavorites) {
+                              _getFavoritPlaces();
+                              setState(() {
+                                displayFavorites = !displayFavorites;
+                              });
+                            }
+                          },
+                  ),
+                ],
+              ),
+            ),
+            _loading
+                ? Expanded(child: Center(child: Loading(noBackground: true)))
+                : Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      child: RefreshIndicator(
+                        onRefresh: _onRefresh,
+                        child: ListView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          itemCount: _places.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            return PlaceWidget(
+                                place: _places[index],
+                                favorited: _user.favoritePlaces
+                                    .contains(_places[index].id));
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+          ],
         ),
       ),
       drawer: Drawer(

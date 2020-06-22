@@ -11,31 +11,31 @@ class DisplayPictureScreen extends StatelessWidget {
 
   const DisplayPictureScreen({Key key, this.imagePath}) : super(key: key);
 
-  void _submitImage() async {
-    final String requestUrl = globals.apiMainUrl + 'api/v1/player';
-    final File _image = File(imagePath);
+  // void _submitImage() async {
+  //   final String requestUrl = globals.apiMainUrl + 'api/v1/player';
+  //   final File _image = File(imagePath);
 
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    final String authorization = prefs.getString('Authorization');
-    final String userInfoStr = prefs.getString('UserInfo');
-    final int userId = int.parse(json.decode(userInfoStr)['id']);
+  //   SharedPreferences prefs = await SharedPreferences.getInstance();
+  //   final String authorization = prefs.getString('Authorization');
+  //   final String userInfoStr = prefs.getString('UserInfo');
+  //   final int userId = int.parse(json.decode(userInfoStr)['id']);
 
-    final body = new Map<String, dynamic>();
-    body['id'] = userId;
-    body['picture'] =
-        'data:image/png;base64,' + base64Encode(_image.readAsBytesSync());
+  //   final body = new Map<String, dynamic>();
+  //   body['id'] = userId;
+  //   body['picture'] =
+  //       'data:image/png;base64,' + base64Encode(_image.readAsBytesSync());
 
-    final Map<String, String> headers = {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Authorization': authorization
-    };
+  //   final Map<String, String> headers = {
+  //     'Content-Type': 'application/json; charset=utf-8',
+  //     'Authorization': authorization
+  //   };
 
-    final http.Response response = await http.post(
-      requestUrl,
-      body: json.encode(body),
-      headers: headers,
-    );
-  }
+  //   final http.Response response = await http.post(
+  //     requestUrl,
+  //     body: json.encode(body),
+  //     headers: headers,
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {

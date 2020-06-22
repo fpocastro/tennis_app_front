@@ -1,12 +1,12 @@
 import 'dart:convert';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
+import 'package:tennis_app_front/models/user.dart';
 import 'package:tennis_app_front/services/auth.dart';
-import 'package:tennis_app_front/services/database.dart';
 import 'package:tennis_app_front/shared/globals.dart' as globals;
 import 'package:http/http.dart' as http;
 
@@ -17,6 +17,7 @@ class UserInformationPage extends StatefulWidget {
 
 class _UserInformationPageState extends State<UserInformationPage> {
   final _formKey = GlobalKey<FormState>();
+  final AuthService _auth = AuthService();
   String _status = 'no-action';
   bool _loading = false;
   String _errorMessage;
@@ -29,62 +30,29 @@ class _UserInformationPageState extends State<UserInformationPage> {
   String _laterality;
   String _backhandType;
   String _favoriteCourt;
-
-  // void _getUserInfo() async {
-  //   setState(() {
-  //     _status = 'loading';
-  //   });
-  //   final String requestUrl =
-  //       globals.apiMainUrl + 'api/v1/players/get_authenticated';
-
-  //   SharedPreferences prefs = await SharedPreferences.getInstance();
-  //   final String authorization = prefs.getString('Authorization');
-
-  //   final Map<String, String> headers = {'Authorization': authorization};
-
-  //   http.Response response = await http.get(
-  //     requestUrl,
-  //     headers: headers,
-  //   );
-
-  //   var userInfo = json.decode(response.body);
-  //   setState(() {
-  //     _nameTextField.text = userInfo['name'];
-  //     _emailTextField.text = userInfo['email'];
-  //     _dateOfBirthTextField.text = userInfo['dateOfBirth'];
-  //     _heightTextField.text = userInfo['height'];
-  //     _weightTextField.text = userInfo['weight'];
-  //     _laterality = userInfo['laterality'];
-  //     _backhandType = userInfo['backhand'];
-  //     _favoriteCourt = userInfo['court'];
-  //     _status = 'ok';
-  //   });
-  // }
+  var dateMask = MaskTextInputFormatter(mask: '##/##/####', filter: {'#': RegExp(r'[0-9]')});
 
   void _getUserInfo() async {
     setState(() {
       _loading = true;
     });
-    final FirebaseUser user = await AuthService().getCurrentUser();
-    final dynamic userInfo = await DatabaseService(uid: user.uid).getUserData();
+    final User user = await AuthService().getCurrentUser();
     setState(() {
-      _nameTextField.text = userInfo['name'];
-      if (userInfo['dateOfBirth'] != null) {
-        _dateOfBirthTextField.text = DateFormat('dd/MM/yyyy').format(
-            DateTime.fromMillisecondsSinceEpoch(userInfo['dateOfBirth'],
-                isUtc: true));
-        _dateOfBirthUnformatted =
-            DateTime.fromMillisecondsSinceEpoch(userInfo['dateOfBirth']);
+      _nameTextField.text = user.name;
+      if (user.dateOfBirth != null) {
+        _dateOfBirthTextField.text =
+            DateFormat('dd/MM/yyyy').format(user.dateOfBirth);
+        _dateOfBirthUnformatted = user.dateOfBirth;
       }
-      if (userInfo['height'] != null) {
-        _heightTextField.text = userInfo['height'].toString();
+      if (user.height != null) {
+        _heightTextField.text = user.height.toString();
       }
-      if (userInfo['weight'] != null) {
-        _weightTextField.text = userInfo['weight'].toString();
+      if (user.weight != null) {
+        _weightTextField.text = user.weight.toString();
       }
-      _laterality = userInfo['laterality'];
-      _backhandType = userInfo['backhand'];
-      _favoriteCourt = userInfo['court'];
+      _laterality = user.laterality;
+      _backhandType = user.backhand;
+      _favoriteCourt = user.court;
       _loading = false;
     });
   }
@@ -93,15 +61,40 @@ class _UserInformationPageState extends State<UserInformationPage> {
     setState(() {
       _loading = true;
     });
-    final FirebaseUser user = await AuthService().getCurrentUser();
-    await DatabaseService(uid: user.uid).updateUserData(
-        _nameTextField.text,
-        _dateOfBirthUnformatted.toUtc().millisecondsSinceEpoch,
-        int.parse(_heightTextField.text),
-        int.parse(_weightTextField.text),
-        _laterality,
-        _backhandType,
-        _favoriteCourt);
+    final User user = await _auth.getCurrentUser();
+    final String token = await _auth.getAuthorizationToken();
+
+    final String requestUrl = globals.apiMainUrl + '/api/users/' + user.uid;
+
+    final body = new Map<String, dynamic>();
+    body['name'] = _nameTextField.text;
+    _dateOfBirthUnformatted = DateFormat('dd/MM/yyyy').parse(_dateOfBirthTextField.text);
+    body['dateOfBirth'] = _dateOfBirthUnformatted.toString();
+    if (_heightTextField.text != '') body['height'] = int.parse(_heightTextField.text);
+    if (_weightTextField.text != '') body['weight'] = int.parse(_weightTextField.text);
+    if (_laterality != null) body['laterality'] = _laterality;
+    if (_laterality != null) body['backhand'] = _backhandType;
+    if (_laterality != null) body['court'] = _favoriteCourt;
+
+    final Map<String, String> headers = {
+      'Authorization': token,
+      'Content-Type': 'application/json'
+    };
+
+    http.Response response = await http.put(
+      requestUrl,
+      body: json.encode(body),
+      headers: headers,
+    );
+
+    if (response.statusCode == 200) {
+      await _auth.setCurrentUser(response.body);
+      Fluttertoast.showToast(
+          msg: 'Dados Atualizados',
+          backgroundColor: Colors.greenAccent,
+          toastLength: Toast.LENGTH_LONG);
+    }
+
     setState(() {
       _loading = false;
     });
@@ -118,163 +111,142 @@ class _UserInformationPageState extends State<UserInformationPage> {
     return Scaffold(
       appBar: AppBar(title: Text('Informações de Usuário')),
       body: Container(
+        height: double.infinity,
+        color: Colors.grey[100],
         padding: EdgeInsets.only(top: 8, left: 16, right: 16),
         child: SingleChildScrollView(
-          child: Column(
-            children: <Widget>[
-              Form(
-                key: _formKey,
-                child: Column(
-                  children: <Widget>[
-                    TextFormField(
-                      controller: _nameTextField,
-                      validator: (value) {
-                        return null;
-                      },
-                      decoration: InputDecoration(
-                        // icon: Icon(Icons.),
-                        hintText: ('Informe seu nome'),
-                        labelText: ('Nome'),
-                      ),
-                    ),
-                    InkWell(
-                      onTap: () {
-                        final DateTime _now = DateTime.now();
-                        showDatePicker(
-                          context: context,
-                          initialDate: _now,
-                          firstDate: DateTime(1900),
-                          lastDate: _now,
-                        ).then((date) {
-                          setState(() {
-                            _dateOfBirthUnformatted = date;
-                            _dateOfBirthTextField.text =
-                                DateFormat('dd/MM/yyyy').format(date);
-                          });
-                        });
-                      },
-                      child: IgnorePointer(
-                        child: TextFormField(
-                          controller: _dateOfBirthTextField,
-                          // validator: () => return null,
-                          decoration: InputDecoration(
-                            hintText: ('Informe sua data de nascimento'),
-                            labelText: ('Data de nascimento'),
-                          ),
-                        ),
-                      ),
-                    ),
-                    TextFormField(
-                      keyboardType: TextInputType.number,
-                      controller: _heightTextField,
-                      validator: (value) {
-                        return null;
-                      },
-                      decoration: InputDecoration(
-                        // icon: Icon(Icons.),
-                        hintText: ('Informe sua altura (cm)'),
-                        labelText: ('Altura (cm)'),
-                      ),
-                    ),
-                    TextFormField(
-                      keyboardType: TextInputType.number,
-                      controller: _weightTextField,
-                      validator: (value) {
-                        return null;
-                      },
-                      decoration: InputDecoration(
-                        // icon: Icon(Icons.),
-                        hintText: ('Informe seu peso (kg)'),
-                        labelText: ('Peso (kg)'),
-                      ),
-                    ),
-                    DropdownButtonFormField<String>(
-                      value: _laterality,
-                      decoration: InputDecoration(
-                        hintText: 'Lateralidade',
-                      ),
-                      items: <List<String>>[
-                        [null, ''],
-                        ['1', 'Destro'],
-                        ['2', 'Canhoto'],
-                      ].map((List<String> value) {
-                        return DropdownMenuItem<String>(
-                          value: value[1],
-                          child: Text(value[1]),
-                        );
-                      }).toList(),
-                      onChanged: (String value) {
-                        setState(() {
-                          _laterality = value;
-                        });
-                      },
-                    ),
-                    DropdownButtonFormField<String>(
-                      value: _backhandType,
-                      decoration: InputDecoration(
-                        hintText: 'Backhand',
-                      ),
-                      items: <List<String>>[
-                        [null, ''],
-                        ['1', 'Uma mão'],
-                        ['2', 'Duas mãos'],
-                      ].map((List<String> value) {
-                        return DropdownMenuItem<String>(
-                          value: value[1],
-                          child: Text(value[1]),
-                        );
-                      }).toList(),
-                      onChanged: (String value) {
-                        setState(() {
-                          _backhandType = value;
-                        });
-                      },
-                    ),
-                    DropdownButtonFormField<String>(
-                      value: _favoriteCourt,
-                      decoration: InputDecoration(
-                        hintText: 'Quadra favorita',
-                      ),
-                      items: <List<String>>[
-                        [null, ''],
-                        ['1', 'Saibro'],
-                        ['2', 'Rápida'],
-                      ].map((List<String> value) {
-                        return DropdownMenuItem<String>(
-                          value: value[1],
-                          child: Text(value[1]),
-                        );
-                      }).toList(),
-                      onChanged: (String value) {
-                        setState(() {
-                          _favoriteCourt = value;
-                        });
-                      },
-                    ),
-                    Container(
-                      margin: EdgeInsets.only(top: 16, bottom: 16),
-                      width: double.infinity,
-                      child: RaisedButton(
-                        onPressed: _loading
-                            ? null
-                            : () async {
-                                try {
-                                  await _setUserInfo();
-                                  Fluttertoast.showToast(
-                                      msg: 'Dados Atualizados',
-                                      backgroundColor: Colors.red,
-                                      toastLength: Toast.LENGTH_LONG);
-                                } catch (e) {
-                                  print(e);
-                                }
-                              },
-                        child: Text('Salvar'),
-                      ),
-                    ),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: <Widget>[
+                TextFormField(
+                  controller: _nameTextField,
+                  validator: (value) {
+                    return null;
+                  },
+                  decoration: InputDecoration(
+                    // icon: Icon(Icons.),
+                    hintText: ('Informe seu nome'),
+                    labelText: ('Nome'),
+                  ),
+                ),
+                TextFormField(
+                  keyboardType: TextInputType.number,
+                  controller: _dateOfBirthTextField,
+                  // validator: () => return null,
+                  decoration: InputDecoration(
+                    hintText: ('Informe sua data de nascimento'),
+                    labelText: ('Data de nascimento'),
+                  ),
+                  inputFormatters: <TextInputFormatter> [
+                    dateMask
                   ],
                 ),
-              ),
-            ],
+                TextFormField(
+                  keyboardType: TextInputType.number,
+                  controller: _heightTextField,
+                  validator: (value) {
+                    return null;
+                  },
+                  decoration: InputDecoration(
+                    // icon: Icon(Icons.),
+                    hintText: ('Informe sua altura (cm)'),
+                    labelText: ('Altura (cm)'),
+                  ),
+                ),
+                TextFormField(
+                  keyboardType: TextInputType.number,
+                  controller: _weightTextField,
+                  validator: (value) {
+                    return null;
+                  },
+                  decoration: InputDecoration(
+                    // icon: Icon(Icons.),
+                    hintText: ('Informe seu peso (kg)'),
+                    labelText: ('Peso (kg)'),
+                  ),
+                ),
+                DropdownButtonFormField<String>(
+                  value: _laterality,
+                  decoration: InputDecoration(
+                    hintText: 'Lateralidade',
+                  ),
+                  items: <List<String>>[
+                    [null, ''],
+                    ['1', 'Destro'],
+                    ['2', 'Canhoto'],
+                  ].map((List<String> value) {
+                    return DropdownMenuItem<String>(
+                      value: value[1],
+                      child: Text(value[1]),
+                    );
+                  }).toList(),
+                  onChanged: (String value) {
+                    setState(() {
+                      _laterality = value;
+                    });
+                  },
+                ),
+                DropdownButtonFormField<String>(
+                  value: _backhandType,
+                  decoration: InputDecoration(
+                    hintText: 'Backhand',
+                  ),
+                  items: <List<String>>[
+                    [null, ''],
+                    ['1', 'Uma mão'],
+                    ['2', 'Duas mãos'],
+                  ].map((List<String> value) {
+                    return DropdownMenuItem<String>(
+                      value: value[1],
+                      child: Text(value[1]),
+                    );
+                  }).toList(),
+                  onChanged: (String value) {
+                    setState(() {
+                      _backhandType = value;
+                    });
+                  },
+                ),
+                DropdownButtonFormField<String>(
+                  value: _favoriteCourt,
+                  decoration: InputDecoration(
+                    hintText: 'Quadra favorita',
+                  ),
+                  items: <List<String>>[
+                    [null, ''],
+                    ['1', 'Saibro'],
+                    ['2', 'Rápida'],
+                  ].map((List<String> value) {
+                    return DropdownMenuItem<String>(
+                      value: value[1],
+                      child: Text(value[1]),
+                    );
+                  }).toList(),
+                  onChanged: (String value) {
+                    setState(() {
+                      _favoriteCourt = value;
+                    });
+                  },
+                ),
+                Container(
+                  margin: EdgeInsets.only(top: 16, bottom: 16),
+                  width: double.infinity,
+                  child: RaisedButton(
+                    onPressed: _loading
+                        ? null
+                        : () async {
+                            try {
+                              _setUserInfo();
+                            } catch (e) {
+                              print(e);
+                            }
+                          },
+                    child: Text('Salvar'),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

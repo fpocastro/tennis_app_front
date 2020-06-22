@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -5,7 +6,12 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:tennis_app_front/models/user.dart';
 import 'package:tennis_app_front/services/auth.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tennis_app_front/shared/globals.dart' as globals;
+import 'package:tennis_app_front/shared/loading.dart';
 
 class ImageCapture extends StatefulWidget {
   @override
@@ -16,7 +22,8 @@ class _ImageCaptureState extends State<ImageCapture> {
   File _imageFile;
 
   Future<void> _pickImage(ImageSource source) async {
-    File selected = await ImagePicker.pickImage(source: source, maxHeight: 200, maxWidth: 200);
+    File selected = await ImagePicker.pickImage(
+        source: source, maxHeight: 640, maxWidth: 640);
 
     setState(() {
       _imageFile = selected;
@@ -87,57 +94,49 @@ class Uploader extends StatefulWidget {
 }
 
 class _UploaderState extends State<Uploader> {
-  final FirebaseStorage _storage =
-      FirebaseStorage(storageBucket: 'gs://tennis-app-270301.appspot.com');
+  bool _loading = false;
+  final AuthService _auth = AuthService();
 
-  StorageUploadTask _uploadTask;
+  void _startUpload(BuildContext context) async {
+    setState(() {
+      _loading = true;
+    });
+    final User user = await _auth.getCurrentUser();
+    final String token = await _auth.getAuthorizationToken();
+    final String requestUrl = globals.apiMainUrl + '/api/users/upload_image/' + user.uid;
 
-  void _startUpload() async {
-    final FirebaseUser user = await AuthService().getCurrentUser();
-    String filePath = 'images/profiles/${user.uid}';
+    final body = new Map<String, dynamic>();
+    body['picture'] =
+        'data:image/png;base64,' + base64Encode(widget.file.readAsBytesSync());
+
+    final Map<String, String> headers = {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Authorization': token
+    };
+
+    final http.Response response = await http.put(
+      requestUrl,
+      body: json.encode(body),
+      headers: headers,
+    );
+
+    _auth.setCurrentUser(response.body);
+
+    Navigator.pop(context);
 
     setState(() {
-      _uploadTask = _storage.ref().child(filePath).putFile(widget.file);
+      _loading = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_uploadTask != null) {
-      return StreamBuilder<StorageTaskEvent>(
-        stream: _uploadTask.events,
-        builder: (context, snapshot) {
-          var event = snapshot?.data?.snapshot;
-          double progressPercent =
-              event != null ? event.bytesTransferred / event.totalByteCount : 0;
-
-          return Column(
-            children: <Widget>[
-              if (_uploadTask.isComplete) Text('Completo'),
-              if (_uploadTask.isPaused)
-                FlatButton(
-                  child: Icon(Icons.play_arrow),
-                  onPressed: _uploadTask.resume,
-                ),
-              if (_uploadTask.isInProgress)
-                FlatButton(
-                  child: Icon(Icons.pause),
-                  onPressed: _uploadTask.pause,
-                ),
-              LinearProgressIndicator(
-                value: progressPercent,
-              ),
-              Text('${(progressPercent * 100).toStringAsFixed(2)} % ')
-            ],
-          );
-        },
-      );
-    } else {
-      return FlatButton.icon(
-        label: Text('Salvar'),
-        icon: Icon(Icons.cloud_upload),
-        onPressed: _startUpload,
-      );
-    }
+    return _loading ? Loading(noBackground: true,) : FlatButton.icon(
+      label: Text('Salvar'),
+      icon: Icon(Icons.cloud_upload),
+      onPressed: () async {
+        _startUpload(context);
+      },
+    );
   }
 }

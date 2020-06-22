@@ -94,92 +94,100 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return _loading ? Loading() : Scaffold(
-      // appBar: AppBar(
-      //   title: Text('Login'),
-      // ),
-      body: Container(
-        padding: EdgeInsets.only(left: 16, right: 16, top: 32, bottom: 16),
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/tennisbg.jpg'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: Center(
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.all(Radius.circular(10)),
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.black.withOpacity(.5),
-                    blurRadius: 10,
-                    spreadRadius: 2,
-                    offset: Offset(6, 7)),
-              ],
-              color: Colors.white,
-            ),
-            padding: EdgeInsets.all(16),
-            width: double.infinity,
-            child: Scrollbar(
-              child: SingleChildScrollView(
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: <Widget>[
-                      TextFormField(
-                        keyboardType: TextInputType.emailAddress,
-                        controller: _emailTextField,
-                        validator: _validateEmail,
-                        decoration: InputDecoration(
-                          icon: Icon(Icons.email),
-                          hintText: ('Informe seu e-mail'),
-                          labelText: ('E-mail'),
-                        ),
-                      ),
-                      TextFormField(
-                        controller: _passwordTextField,
-                        validator: _validatePassword,
-                        decoration: InputDecoration(
-                          icon: Icon(Icons.lock),
-                          hintText: ('Informe sua senha'),
-                          labelText: ('Senha'),
-                        ),
-                        obscureText: true,
-                      ),
-                      Container(
-                        margin: EdgeInsets.only(top: 16, bottom: 16),
-                        width: double.infinity,
-                        child: RaisedButton(
-                          onPressed: () async {
-                            if (_formKey.currentState.validate()) {
-                              setState(() => _loading = true);
-                              dynamic result = await _auth.signInWithEmailAndPassword(_emailTextField.text, _passwordTextField.text);
-                              if (result == null) {
-                                setState(() => this._status = 'error');
-                                setState(() => this._loading = false);
-                              }
-                            }
-                          },
-                          child: Text('Enviar'),
-                        ),
-                      ),
-                      InkWell(
-                        child: Text('Novo por aqui? Cadastre-se'),
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => RegisterPage()),
-                        ),
-                      ),
+    return _loading
+        ? Loading()
+        : Scaffold(
+            body: Container(
+              padding:
+                  EdgeInsets.only(left: 16, right: 16, top: 32, bottom: 16),
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/images/tennisbg.jpg'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+              child: Center(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withOpacity(.5),
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                          offset: Offset(6, 7)),
                     ],
+                    color: Colors.white,
+                  ),
+                  padding: EdgeInsets.all(16),
+                  width: double.infinity,
+                  child: Scrollbar(
+                    child: SingleChildScrollView(
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          children: <Widget>[
+                            TextFormField(
+                              keyboardType: TextInputType.emailAddress,
+                              controller: _emailTextField,
+                              validator: _validateEmail,
+                              decoration: InputDecoration(
+                                icon: Icon(Icons.email),
+                                hintText: ('Informe seu e-mail'),
+                                labelText: ('E-mail'),
+                              ),
+                            ),
+                            TextFormField(
+                              controller: _passwordTextField,
+                              validator: _validatePassword,
+                              decoration: InputDecoration(
+                                icon: Icon(Icons.lock),
+                                hintText: ('Informe sua senha'),
+                                labelText: ('Senha'),
+                              ),
+                              obscureText: true,
+                            ),
+                            Container(
+                              margin: EdgeInsets.only(top: 16, bottom: 16),
+                              width: double.infinity,
+                              child: RaisedButton(
+                                onPressed: () async {
+                                  if (_formKey.currentState.validate()) {
+                                    setState(() => _loading = true);
+                                    int result =
+                                        await _auth.signInWithEmailAndPassword(
+                                            _emailTextField.text,
+                                            _passwordTextField.text);
+                                    if (result != 200) {
+                                      setState(() {
+                                        this._status = 'error';
+                                        this._loading = false;
+                                      });
+                                    } else {
+                                      Navigator.of(context)
+                                          .pushReplacementNamed('/home');
+                                    }
+                                  }
+                                },
+                                child: Text('Enviar'),
+                              ),
+                            ),
+                            InkWell(
+                              child: Text('Novo por aqui? Cadastre-se'),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => RegisterPage()),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ),
-      ),
-    );
+          );
   }
 }

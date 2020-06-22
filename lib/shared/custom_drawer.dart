@@ -1,13 +1,10 @@
 import 'dart:convert';
 import 'package:camera/camera.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tennis_app_front/models/user.dart';
 import 'package:tennis_app_front/services/auth.dart';
-import 'package:tennis_app_front/services/database.dart';
 import 'package:tennis_app_front/shared/image_capture.dart';
-import 'package:tennis_app_front/shared/take_picture_page.dart';
 
 class CustomDrawer extends StatefulWidget {
   @override
@@ -25,46 +22,17 @@ class _CustomDrawerState extends State<CustomDrawer> {
   String _pictureUrl;
   String _nameInitials = '';
 
-  void _logout(context) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString('Authorization', null);
-    prefs.setString('UserInfo', null);
-    Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
-  }
-
-  // void _loadUserInfo() async {
-  //   SharedPreferences prefs = await SharedPreferences.getInstance();
-  //   final String userInfoStr = prefs.getString('UserInfo');
-
-  //   if (userInfoStr != null) {
-  //     var userInfo = json.decode(userInfoStr);
-  //     setState(() {
-  //       _name = userInfo['name'];
-  //       _email = userInfo['email'];
-  //       _pictureUrl = userInfo['pictureUrl'];
-  //       _nameInitials = _name.split(' ').first[0] + _name.split(' ').last[0];
-  //     });
-  //   }
-  // }
-
   void _getUserInfo() async {
     setState(() {
       _loading = true;
     });
-    final FirebaseUser user = await AuthService().getCurrentUser();
-    final dynamic userInfo = await DatabaseService(uid: user.uid).getUserData();
-    String filePath = 'images/profiles/${user.uid}';
-    final ref = FirebaseStorage.instance.ref().child(filePath);
-    await ref.getDownloadURL().then((url) {
-      setState(() {
-        _pictureUrl = url;
-      });
-    }, onError: (error) {});
+    final User user = await AuthService().getCurrentUser();
     setState(() {
-      _name = userInfo['name'];
+      _name = user.name;
       _email = user.email;
-      _nameInitials = userInfo['name'].toString().split(' ').first[0] +
-          userInfo['name'].toString().split(' ').last[0];
+      _nameInitials =
+          user.name.split(' ').first[0] + user.name.split(' ').last[0];
+      _pictureUrl = user.pictureUrl;
       _loading = false;
     });
   }
@@ -147,6 +115,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
           ListTile(
             leading: Icon(Icons.home),
             title: Text('Home'),
+            selected: ModalRoute.of(context).settings.name == '/home',
             onTap: () {
               if (ModalRoute.of(context).settings.name != '/home' &&
                   ModalRoute.of(context).settings.name != '/') {
@@ -158,10 +127,22 @@ class _CustomDrawerState extends State<CustomDrawer> {
           ListTile(
             leading: Icon(Icons.search),
             title: Text('Buscar Partida'),
+            selected: ModalRoute.of(context).settings.name == '/search_match',
             onTap: () {
               if (ModalRoute.of(context).settings.name != '/search_match') {
                 Navigator.of(context).pop();
                 Navigator.of(context).pushNamed('/search_match');
+              }
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.star),
+            title: Text('Minhas Partidas'),
+            selected: ModalRoute.of(context).settings.name == '/matches',
+            onTap: () {
+              if (ModalRoute.of(context).settings.name != '/matches') {
+                Navigator.of(context).pop();
+                Navigator.of(context).pushNamed('/matches');
               }
             },
           ),
@@ -173,11 +154,18 @@ class _CustomDrawerState extends State<CustomDrawer> {
           ListTile(
             leading: Icon(Icons.person_pin),
             title: Text('Jogadores'),
-            onTap: () {},
+            selected: ModalRoute.of(context).settings.name == '/players',
+            onTap: () {
+              if (ModalRoute.of(context).settings.name != '/players') {
+                Navigator.of(context).pop();
+                Navigator.of(context).pushNamed('/players');
+              }
+            },
           ),
           ListTile(
             leading: Icon(Icons.place),
             title: Text('Locais'),
+            selected: ModalRoute.of(context).settings.name == '/places',
             onTap: () {
               if (ModalRoute.of(context).settings.name != '/places') {
                 Navigator.of(context).pop();
@@ -191,6 +179,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
           ListTile(
             leading: Icon(Icons.account_circle),
             title: Text('Conta'),
+            selected: ModalRoute.of(context).settings.name == '/account',
             onTap: () {
               if (ModalRoute.of(context).settings.name != '/account') {
                 Navigator.of(context).pop();
@@ -203,7 +192,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
             title: Text('Logout'),
             onTap: () async {
               await _auth.signOut();
-              Navigator.popUntil(context, ModalRoute.withName('/'));
+              Navigator.of(context).pushReplacementNamed('/login');
             },
           ),
         ],
