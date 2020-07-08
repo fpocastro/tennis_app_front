@@ -156,10 +156,6 @@ class _AccountPageState extends State<AccountPage> {
                 title: 'Perguntas frequentes',
                 redirect: FaqPage(),
               ),
-              AccountMenuRaisedButton(
-                title: 'Informações Legais',
-                redirect: null,
-              ),
               SizedBox(height: 40),
               InkWell(
                 child: Text(

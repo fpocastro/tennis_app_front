@@ -22,7 +22,7 @@ class _CreateNewMatchPageState extends State<CreateNewMatchPage> {
   bool _loading = false;
   final AuthService _auth = AuthService();
   User _user;
-  List<Place> _places;
+  List<Place> _places = [];
   bool _favoritePlaces = true;
   final _formKey = GlobalKey<FormState>();
   String _status = 'no-action';

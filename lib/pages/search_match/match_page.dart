@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
 import 'package:tennis_app_front/models/match.dart';
+import 'package:tennis_app_front/models/match_set.dart';
 import 'package:tennis_app_front/models/user.dart';
 import 'package:tennis_app_front/pages/places/place_page.dart';
 import 'package:tennis_app_front/pages/players/player_page.dart';
@@ -142,6 +143,10 @@ class _MatchPageState extends State<MatchPage> {
     });
   }
 
+  void reload() {
+    setState(() {});
+  }
+
   @override
   void initState() {
     setIsInMatch();
@@ -168,46 +173,50 @@ class _MatchPageState extends State<MatchPage> {
                 SizedBox(
                   height: 8,
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: <Widget>[
-                    _isInMatch &&
-                            ['Aberta', 'Em andamento']
-                                .contains(widget.match.status)
-                        ? RaisedButton(
-                            color: Colors.red,
-                            child: Text(widget.match.creator.uid == _user.uid
-                                ? 'Excluir'
-                                : 'Abandonar'),
-                            onPressed: () async {
-                              if (widget.match.creator.uid == _user.uid) {
-                                _deleteMatch();
-                              } else {
-                                _quitMatch();
-                              }
-                            },
-                          )
-                        : Container(),
-                    _isInMatch &&
-                            widget.match.creator.uid == _user.uid &&
-                            widget.match.status == 'Em andamento'
-                        ? RaisedButton(
-                            color: Colors.greenAccent,
-                            child: Text('Definir Resultado'),
-                            onPressed: () async {
-                              showDialog(
-                                context: context,
-                                child: Dialog(
-                                  child: SetResultWidget(
-                                    matchId: widget.match.id,
-                                  ),
-                                ),
-                              );
-                            },
-                          )
-                        : Container(),
-                  ],
-                ),
+                widget.match.private
+                    ? Container()
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: <Widget>[
+                          _isInMatch &&
+                                  ['Aberta', 'Em andamento']
+                                      .contains(widget.match.status)
+                              ? RaisedButton(
+                                  color: Colors.red,
+                                  child: Text(
+                                      widget.match.creator.uid == _user.uid
+                                          ? 'Excluir'
+                                          : 'Abandonar'),
+                                  onPressed: () async {
+                                    if (widget.match.creator.uid == _user.uid) {
+                                      _deleteMatch();
+                                    } else {
+                                      _quitMatch();
+                                    }
+                                  },
+                                )
+                              : Container(),
+                          _isInMatch &&
+                                  widget.match.creator.uid == _user.uid &&
+                                  widget.match.status == 'Em andamento'
+                              ? RaisedButton(
+                                  color: Colors.greenAccent,
+                                  child: Text('Definir Resultado'),
+                                  onPressed: () async {
+                                    showDialog(
+                                      context: context,
+                                      child: Dialog(
+                                        child: SetResultWidget(
+                                          match: widget.match,
+                                          notify: reload,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                )
+                              : Container(),
+                        ],
+                      ),
                 Text('Equipe 1',
                     style:
                         TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
@@ -288,7 +297,7 @@ class _MatchPageState extends State<MatchPage> {
                                 teamTwoTiebreak:
                                     widget.match.sets[0].teamTwoTiebreak,
                               ),
-                              SizedBox(width: 12),
+                              SizedBox(width: 16),
                               widget.match.sets.length > 1
                                   ? MatchSetDisplayWidget(
                                       teamOne: widget.match.sets[1].teamOne,
@@ -299,7 +308,7 @@ class _MatchPageState extends State<MatchPage> {
                                           widget.match.sets[1].teamTwoTiebreak,
                                     )
                                   : Container(),
-                              SizedBox(width: 12),
+                              SizedBox(width: 16),
                               widget.match.sets.length > 2
                                   ? MatchSetDisplayWidget(
                                       teamOne: widget.match.sets[2].teamOne,
@@ -513,11 +522,10 @@ class MatchInfoItem extends StatelessWidget {
 }
 
 class SetResultWidget extends StatefulWidget {
-  final String matchId;
+  final Match match;
+  final Function() notify;
 
-  const SetResultWidget({
-    @required this.matchId,
-  });
+  const SetResultWidget({@required this.match, this.notify});
 
   @override
   _SetResultWidgetState createState() => _SetResultWidgetState();
@@ -550,13 +558,12 @@ class _SetResultWidgetState extends State<SetResultWidget> {
       _loading = true;
     });
     final String token = await _auth.getAuthorizationToken();
-    print(widget.matchId);
     final String requestUrl =
-        globals.apiMainUrl + '/api/matches/${widget.matchId}/score';
+        globals.apiMainUrl + '/api/matches/${widget.match.id}/score';
 
     final body = new Map<String, dynamic>();
     body['sets'] = [];
-    var newSet = {};
+    var newSet = new Map<String, dynamic>();
     newSet['teamOne'] = int.parse(teamOneSetOneGames.text);
     newSet['teamTwo'] = int.parse(teamTwoSetOneGames.text);
     if (teamOneSetOneTiebreak.text.isNotEmpty)
@@ -565,7 +572,7 @@ class _SetResultWidgetState extends State<SetResultWidget> {
       newSet['teamTwoTiebreak'] = int.parse(teamTwoSetOneTiebreak.text);
     body['sets'].add(newSet);
     if (['2', '3'].contains(_matchStyle)) {
-      newSet = {};
+      newSet = new Map<String, dynamic>();
       newSet['teamOne'] = int.parse(teamOneSetTwoGames.text);
       newSet['teamTwo'] = int.parse(teamTwoSetTwoGames.text);
       if (teamOneSetTwoTiebreak.text.isNotEmpty)
@@ -575,7 +582,7 @@ class _SetResultWidgetState extends State<SetResultWidget> {
       body['sets'].add(newSet);
     }
     if (_matchStyle == '3') {
-      newSet = {};
+      newSet = new Map<String, dynamic>();
       newSet['teamOne'] = int.parse(teamOneSetThreeGames.text);
       newSet['teamTwo'] = int.parse(teamTwoSetThreeGames.text);
       if (teamOneSetThreeTiebreak.text.isNotEmpty)
@@ -598,6 +605,13 @@ class _SetResultWidgetState extends State<SetResultWidget> {
 
     setState(() {
       _loading = false;
+      if (response.statusCode == 200) {
+        widget.match.sets = body['sets']
+            .map((matchSet) => MatchSet.fromJson(matchSet))
+            .toList()
+            .cast<MatchSet>();
+        widget.notify();
+      }
     });
 
     return response.statusCode;
@@ -675,7 +689,9 @@ class _SetResultWidgetState extends State<SetResultWidget> {
                 child: Text('Publicar'),
                 onPressed: () async {
                   var status = await _updateMatchResult();
-                  print(status);
+                  if (status == 200) {
+                    Navigator.pop(context);
+                  }
                 },
               ),
             ),
@@ -844,10 +860,7 @@ class MatchSetDisplayWidget extends StatelessWidget {
             ],
           ),
         ),
-        SizedBox(
-          width: 16,
-          child: Center(child: Text('X')),
-        ),
+        SizedBox(width: 6),
         Container(
           height: 30,
           width: 22,

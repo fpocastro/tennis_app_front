@@ -11,8 +11,9 @@ import 'package:http/http.dart' as http;
 class PlaceWidget extends StatefulWidget {
   final Place place;
   final bool favorited;
+  final bool favoritable;
 
-  const PlaceWidget({Key key, this.place, this.favorited}) : super(key: key);
+  const PlaceWidget({Key key, this.place, this.favorited, this.favoritable = true}) : super(key: key);
 
   @override
   _PlaceWidgetState createState() => _PlaceWidgetState();
@@ -94,15 +95,15 @@ class _PlaceWidgetState extends State<PlaceWidget> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     image: DecorationImage(
-                      image: (widget.place.pictureUlr != null)
+                      image: (widget.place.pictureUlr != null && widget.place.pictureUlr != '')
                           ? NetworkImage(widget.place.pictureUlr)
                           : NetworkImage(
-                              'https://images.unsplash.com/photo-1557766131-dca3a8acae87?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=3582&q=80'),
+                              'https://storage.googleapis.com/tennis-app-bucket/images/places/sem-imagem.png'),
                       fit: BoxFit.cover,
                     ),
                   ),
                 ),
-                Container(
+                widget.favoritable ? Container(
                   margin: EdgeInsets.only(right: 16),
                   child: Align(
                     alignment: Alignment.topRight,
@@ -123,7 +124,7 @@ class _PlaceWidgetState extends State<PlaceWidget> {
                       },
                     ),
                   ),
-                ),
+                ) : Container(),
               ],
             ),
             Container(

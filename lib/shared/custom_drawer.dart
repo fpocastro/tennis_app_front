@@ -115,7 +115,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
           ListTile(
             leading: Icon(Icons.home),
             title: Text('Home'),
-            selected: ModalRoute.of(context).settings.name == '/home',
+            selected: ModalRoute.of(context).settings.name == '/home' || ModalRoute.of(context).settings.name == '/',
             onTap: () {
               if (ModalRoute.of(context).settings.name != '/home' &&
                   ModalRoute.of(context).settings.name != '/') {
@@ -149,7 +149,13 @@ class _CustomDrawerState extends State<CustomDrawer> {
           ListTile(
             leading: Icon(Icons.event),
             title: Text('Eventos'),
-            onTap: () {},
+            selected: ModalRoute.of(context).settings.name == '/events',
+            onTap: () {
+              if (ModalRoute.of(context).settings.name != '/events') {
+                Navigator.of(context).pop();
+                Navigator.of(context).pushNamed('/events');
+              }
+            },
           ),
           ListTile(
             leading: Icon(Icons.person_pin),

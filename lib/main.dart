@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tennis_app_front/pages/account/account_page.dart';
 import 'package:tennis_app_front/pages/chat/messages_page.dart';
+import 'package:tennis_app_front/pages/events/events_page.dart';
 import 'package:tennis_app_front/pages/home/home_page.dart';
 import 'package:tennis_app_front/pages/login_page.dart';
 import 'package:tennis_app_front/pages/places/places_page.dart';
@@ -17,6 +18,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'TennisApp',
       theme: ThemeData(
         primarySwatch: Colors.orange,
@@ -31,6 +33,7 @@ class MyApp extends StatelessWidget {
         '/messages': (BuildContext context) => new MessagesPage(),
         '/players': (BuildContext context) => new PlayersPage(),
         '/matches': (BuildContext context) => new MatchesPage(),
+        '/events': (BuildContext context) => new EventsPage(),
       },
     );
   }

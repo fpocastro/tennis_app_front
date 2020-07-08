@@ -206,14 +206,17 @@ class _HomePageState extends State<HomePage> {
                                 _performance['wins'].toString(),
                                 style: TextStyle(fontSize: 20),
                               ),
-                              Text(
-                                ((100 * _performance['wins']) /
-                                            (_performance['wins'] +
-                                                _performance['losses']))
-                                        .toStringAsFixed(1) +
-                                    '%',
-                                style: TextStyle(fontSize: 20),
-                              ),
+                              (_performance['wins'] + _performance['losses']) >
+                                      0
+                                  ? Text(
+                                      ((100 * _performance['wins']) /
+                                                  (_performance['wins'] +
+                                                      _performance['losses']))
+                                              .toStringAsFixed(1) +
+                                          '%',
+                                      style: TextStyle(fontSize: 20),
+                                    )
+                                  : Container(),
                             ],
                           ),
                         ),
@@ -248,14 +251,17 @@ class _HomePageState extends State<HomePage> {
                                 _performance['losses'].toString(),
                                 style: TextStyle(fontSize: 20),
                               ),
-                              Text(
-                                ((100 * _performance['losses']) /
-                                            (_performance['wins'] +
-                                                _performance['losses']))
-                                        .toStringAsFixed(1) +
-                                    '%',
-                                style: TextStyle(fontSize: 20),
-                              ),
+                              (_performance['wins'] + _performance['losses']) >
+                                      0
+                                  ? Text(
+                                      ((100 * _performance['losses']) /
+                                                  (_performance['wins'] +
+                                                      _performance['losses']))
+                                              .toStringAsFixed(1) +
+                                          '%',
+                                      style: TextStyle(fontSize: 20),
+                                    )
+                                  : Container(),
                             ],
                           ),
                         ),

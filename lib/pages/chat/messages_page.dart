@@ -121,7 +121,7 @@ class _MessagesPageState extends State<MessagesPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: <Widget>[
                                 Text(
-                                  DateFormat('dd/MM/yyyy - hh:mm').format(
+                                  DateFormat('dd/MM/yyyy - hh:mm a').format(
                                       DateTime.parse(_contacts[index]
                                           ['messages'][0]['time'])),
                                   style: TextStyle(

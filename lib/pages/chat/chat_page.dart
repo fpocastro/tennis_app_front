@@ -106,6 +106,7 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(title: Text(_chatUser == null ? '' : _chatUser.name)),
       body: _chatUser == null
           ? Loading(

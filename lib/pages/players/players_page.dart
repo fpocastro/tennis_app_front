@@ -143,15 +143,6 @@ class _PlayersPageState extends State<PlayersPage> {
                                           fontSize: 14,
                                           color: Colors.grey[600]),
                                     ),
-                                    Text(
-                                      'Locais favoritos',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey[600],
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 2,
-                                    ),
                                   ],
                                 ),
                               ],
